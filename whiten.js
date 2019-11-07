@@ -33,16 +33,16 @@ function Whiten(canvas, options) {
     },
     up: e => {
       mousedown = false;
-      onchange({ x1, x2, y1, y2, width, height });
+      onchange({ x1, x2, y1, y2, width, height, canvasWidth: canvas.width, canvasHeight: canvas.height });
     },
     move: e => {
       x1 = parseInt(getPositions(e).left + getScrolls().left);
       y1 = parseInt(getPositions(e).top + getScrolls().top);
+      if (_options.multiple === false) {
+        ctx.clearRect(0, 0, drawArea.width, drawArea.height);
+      }
 
       if (mousedown) {
-        if (_options.multiple === false) {
-          ctx.clearRect(0, 0, drawArea.width, drawArea.height);
-        }
         ctx.beginPath();
         width = x1 - x2;
         height = y1 - y2;
