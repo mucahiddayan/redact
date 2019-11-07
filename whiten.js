@@ -33,7 +33,9 @@ function Whiten(canvas, options) {
     },
     up: e => {
       mousedown = false;
-      onchange && onchange({ x1, x2, y1, y2, width, height, canvasWidth: canvas.width, canvasHeight: canvas.height });
+      if (typeof onchange === 'function') {
+        onchange({ x1, x2, y1, y2, width, height, canvasWidth: canvas.width, canvasHeight: canvas.height });
+      }
     },
     move: e => {
       x1 = parseInt(getPositions(e).left + getScrolls().left);
@@ -90,6 +92,9 @@ function Whiten(canvas, options) {
 
   return {
     subscribe: cb => {
+      if (typeof cb !== 'function') {
+        throw TypeError(`parameter of subscribe must be a function!`);
+      }
       onchange = cb;
     },
     clear: () => {
