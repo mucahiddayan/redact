@@ -14,7 +14,7 @@ function Whiten(canvas, options) {
 
   let mousedown = false;
 
-  const _options = { multiple: false, fillColor: 'rgba(0,0,0,.2)', strokeColor: '#333', ...options };
+  const _options = { multiple: false, fillColor: 'rgba(0,0,0,.2)', strokeWidth: 1, strokeColor: '#333', ...options };
 
   const getScrolls = () => {
     return { top: parent.scrollTop || 0, left: parent.scrollLeft || 0 };
@@ -52,7 +52,7 @@ function Whiten(canvas, options) {
         ctx.strokeStyle = _options.strokeColor;
         ctx.fillStyle = _options.fillColor;
         ctx.fillRect(Math.abs(x2), Math.abs(y2), width, height);
-        ctx.lineWidth = 1;
+        ctx.lineWidth = _options.strokeWidth;
         ctx.stroke();
       }
     }
