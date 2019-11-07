@@ -33,16 +33,16 @@ function Whiten(canvas, options) {
     },
     up: e => {
       mousedown = false;
-      onchange({ x1, x2, y1, y2, width, height, canvasWidth: canvas.width, canvasHeight: canvas.height });
+      onchange && onchange({ x1, x2, y1, y2, width, height, canvasWidth: canvas.width, canvasHeight: canvas.height });
     },
     move: e => {
       x1 = parseInt(getPositions(e).left + getScrolls().left);
       y1 = parseInt(getPositions(e).top + getScrolls().top);
-      if (_options.multiple === false) {
-        ctx.clearRect(0, 0, drawArea.width, drawArea.height);
-      }
 
       if (mousedown) {
+        if (_options.multiple === false) {
+          clear();
+        }
         ctx.beginPath();
         width = x1 - x2;
         height = y1 - y2;
@@ -54,6 +54,10 @@ function Whiten(canvas, options) {
         ctx.stroke();
       }
     }
+  };
+
+  const clear = () => {
+    ctx.clearRect(0, 0, drawArea.width, drawArea.height);
   };
 
   const init = () => {
@@ -87,6 +91,9 @@ function Whiten(canvas, options) {
   return {
     subscribe: cb => {
       onchange = cb;
+    },
+    clear: () => {
+      clear();
     }
   };
 }
