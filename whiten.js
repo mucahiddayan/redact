@@ -88,7 +88,10 @@ function Whiten(canvas, options) {
     ['up', 'down', 'move'].forEach(event => drawArea.addEventListener(`mouse${event}`, events[event]));
   };
 
-  init();
+  const destroy = () => {
+    ['up', 'down', 'move'].forEach(event => drawArea.removeEventListener(`mouse${event}`, events[event]));
+    drawArea.remove();
+  };
 
   return {
     subscribe: cb => {
@@ -97,8 +100,8 @@ function Whiten(canvas, options) {
       }
       onchange = cb;
     },
-    clear: () => {
-      clear();
-    }
+    clear,
+    init,
+    destroy
   };
 }
