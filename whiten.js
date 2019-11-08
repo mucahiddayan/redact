@@ -34,7 +34,7 @@ function Whiten(canvas, options) {
     up: e => {
       mousedown = false;
       if (typeof onchange === 'function') {
-        onchange({ x1, x2, y1, y2, width, height, canvasWidth: canvas.width, canvasHeight: canvas.height });
+        onchange({ x1, y1, width, height, canvasWidth: canvas.width, canvasHeight: canvas.height });
       }
     },
     move: e => {
