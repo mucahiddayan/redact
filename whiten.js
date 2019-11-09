@@ -3,14 +3,12 @@ function Whiten(canvas, options) {
     throw TypeError(`Element must be a HTMLCanvasElement!`);
   }
 
-  let drawArea, offsetLeft, offsetTop, ctx, left, top, parent;
-
-  let onchange, width, height;
+  let drawArea, offsetLeft, offsetTop, ctx, left, top, parent, onchange, width, height, isActive;
 
   let x1,
     y1,
-    x2,
-    y2 = 0;
+    _x,
+    _y = 0;
 
   let mousedown = false;
 
@@ -27,14 +25,14 @@ function Whiten(canvas, options) {
 
   const events = {
     down: e => {
-      x2 = parseInt(getPositions(e).left + getScrolls().left);
-      y2 = parseInt(getPositions(e).top + getScrolls().top);
+      _x = parseInt(getPositions(e).left + getScrolls().left);
+      _y = parseInt(getPositions(e).top + getScrolls().top);
       mousedown = true;
     },
-    up: e => {
+    up: () => {
       mousedown = false;
       if (typeof onchange === 'function') {
-        onchange({ x1, y1, width, height, canvasWidth: canvas.width, canvasHeight: canvas.height });
+        onchange({ x: _x, y: _y, width, height });
       }
     },
     move: e => {
@@ -42,20 +40,28 @@ function Whiten(canvas, options) {
       y1 = parseInt(getPositions(e).top + getScrolls().top);
 
       if (mousedown) {
-        if (_options.multiple === false) {
-          clear();
-        }
-        ctx.beginPath();
-        width = x1 - x2;
-        height = y1 - y2;
-        ctx.rect(Math.abs(x2), Math.abs(y2), width, height);
-        ctx.strokeStyle = _options.strokeColor;
-        ctx.fillStyle = _options.fillColor;
-        ctx.fillRect(Math.abs(x2), Math.abs(y2), width, height);
-        ctx.lineWidth = _options.strokeWidth;
-        ctx.stroke();
+        width = x1 - _x;
+        height = y1 - _y;
+        draw({ x: _x, y: _y, width, height });
       }
     }
+  };
+
+  const draw = ({ x, y, width, height }) => {
+    if (!isActive) {
+      return;
+    }
+    if (_options.multiple === false) {
+      clear();
+    }
+    ctx.beginPath();
+
+    ctx.rect(Math.abs(x), Math.abs(y), width, height);
+    ctx.strokeStyle = _options.strokeColor;
+    ctx.fillStyle = _options.fillColor;
+    ctx.fillRect(Math.abs(x), Math.abs(y), width, height);
+    ctx.lineWidth = _options.strokeWidth;
+    ctx.stroke();
   };
 
   const clear = () => {
@@ -66,11 +72,13 @@ function Whiten(canvas, options) {
     if (document.querySelector('.drawarea')) {
       document.querySelector('.drawarea').remove();
     }
+    isActive = true;
 
     drawArea = document.createElement('canvas');
     drawArea.width = canvas.width;
     drawArea.height = canvas.height;
     drawArea.style.position = 'absolute';
+    drawArea.style.cursor = 'crosshair';
     offsetLeft = drawArea.offsetLeft;
     offsetTop = drawArea.offsetTop;
     drawArea.style.top = `${canvas.offsetTop}px`;
@@ -89,6 +97,7 @@ function Whiten(canvas, options) {
   };
 
   const destroy = () => {
+    isActive = false;
     ['up', 'down', 'move'].forEach(event => drawArea.removeEventListener(`mouse${event}`, events[event]));
     drawArea.remove();
   };
@@ -102,6 +111,10 @@ function Whiten(canvas, options) {
     },
     clear,
     init,
-    destroy
+    destroy,
+    draw,
+    get isActive() {
+      return isActive;
+    }
   };
 }
