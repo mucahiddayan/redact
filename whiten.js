@@ -23,28 +23,37 @@ function Whiten(canvas, options) {
     top: event.pageY - offsetTop - top
   });
 
+  const calculatePositions = e => {
+    x1 = parseInt(getPositions(e).left + getScrolls().left);
+    y1 = parseInt(getPositions(e).top + getScrolls().top);
+
+    if (mousedown) {
+      width = x1 - _x;
+      height = y1 - _y;
+      draw({ x: _x, y: _y, width, height });
+    }
+  };
+
+  const clear = () => {
+    ctx.clearRect(0, 0, drawArea.width, drawArea.height);
+  };
+
+  const prepareForDraw = () => {
+    mousedown = false;
+    if (typeof onchange === 'function') {
+      onchange({ x: _x, y: _y, width, height });
+    }
+  };
+
   const events = {
     down: e => {
       _x = parseInt(getPositions(e).left + getScrolls().left);
       _y = parseInt(getPositions(e).top + getScrolls().top);
       mousedown = true;
     },
-    up: () => {
-      mousedown = false;
-      if (typeof onchange === 'function') {
-        onchange({ x: _x, y: _y, width, height });
-      }
-    },
-    move: e => {
-      x1 = parseInt(getPositions(e).left + getScrolls().left);
-      y1 = parseInt(getPositions(e).top + getScrolls().top);
-
-      if (mousedown) {
-        width = x1 - _x;
-        height = y1 - _y;
-        draw({ x: _x, y: _y, width, height });
-      }
-    }
+    up: prepareForDraw,
+    move: calculatePositions,
+    out: prepareForDraw
   };
 
   const draw = ({ x, y, width, height }) => {
@@ -64,8 +73,21 @@ function Whiten(canvas, options) {
     ctx.stroke();
   };
 
-  const clear = () => {
-    ctx.clearRect(0, 0, drawArea.width, drawArea.height);
+  const justify = () => {
+    if (!drawArea) {
+      throw Error('Whiten is not activated!');
+    }
+    drawArea.width = canvas.width;
+    drawArea.height = canvas.height;
+    offsetLeft = drawArea.offsetLeft;
+    offsetTop = drawArea.offsetTop;
+    drawArea.style.top = `${canvas.offsetTop}px`;
+    drawArea.style.left = `${canvas.offsetLeft}px`;
+    ctx = drawArea.getContext('2d');
+
+    const boundingClientRect = drawArea.getBoundingClientRect();
+    left = boundingClientRect.left + getScrolls().left;
+    top = boundingClientRect.top + getScrolls().top;
   };
 
   const init = () => {
@@ -75,28 +97,25 @@ function Whiten(canvas, options) {
     isActive = true;
 
     drawArea = document.createElement('canvas');
-    drawArea.width = canvas.width;
-    drawArea.height = canvas.height;
+
     drawArea.style.position = 'absolute';
     drawArea.style.cursor = 'crosshair';
-    offsetLeft = drawArea.offsetLeft;
-    offsetTop = drawArea.offsetTop;
-    drawArea.style.top = `${canvas.offsetTop}px`;
-    drawArea.style.left = `${canvas.offsetLeft}px`;
     drawArea.style.zIndex = 99;
     drawArea.classList.add('drawarea');
     ctx = drawArea.getContext('2d');
     canvas.parentNode.insertBefore(drawArea, canvas.nextElementSibling);
-    const boundingClientRect = drawArea.getBoundingClientRect();
 
     parent = canvas.parentElement;
-    left = boundingClientRect.left + getScrolls().left;
-    top = boundingClientRect.top + getScrolls().top;
 
-    ['up', 'down', 'move'].forEach(event => drawArea.addEventListener(`mouse${event}`, events[event]));
+    justify();
+
+    ['up', 'down', 'move', 'out'].forEach(event => drawArea.addEventListener(`mouse${event}`, events[event]));
   };
 
+  const getCanvasSize = () => ({ canvasWidth: canvas.width, canvasHeight: canvas.height });
+
   const destroy = () => {
+    if (!isActive) return;
     isActive = false;
     ['up', 'down', 'move'].forEach(event => drawArea.removeEventListener(`mouse${event}`, events[event]));
     drawArea.remove();
@@ -112,7 +131,9 @@ function Whiten(canvas, options) {
     clear,
     init,
     destroy,
-    draw,
+    draw: draw,
+    justify,
+    getCanvasSize,
     get isActive() {
       return isActive;
     }
