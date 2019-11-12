@@ -1,4 +1,4 @@
-function Whiten(canvas, options) {
+function Redact(canvas, options) {
   if (!(canvas instanceof HTMLCanvasElement)) {
     throw TypeError(`Element must be a HTMLCanvasElement!`);
   }
@@ -75,7 +75,7 @@ function Whiten(canvas, options) {
 
   const justify = () => {
     if (!drawArea) {
-      throw Error('Whiten is not activated!');
+      throw Error('Redaction is not activated!');
     }
     drawArea.width = canvas.width;
     drawArea.height = canvas.height;
