@@ -3,139 +3,118 @@ function Redact(canvas, options) {
     throw TypeError(`Element must be a HTMLCanvasElement!`);
   }
 
-  let drawArea, offsetLeft, offsetTop, ctx, left, top, parent, onchange, width, height, isActive;
-
-  let x1,
-    y1,
-    _x,
-    _y = 0;
+  let _drawArea, _ctx, _parent, _onchange, _width, _height, _isActive;
+  let startX,
+    startY = 0;
 
   let mousedown = false;
 
+  const EVENTS = ['up', 'down', 'move', 'out'];
   const _options = { multiple: false, fillColor: 'rgba(0,0,0,.2)', strokeWidth: 1, strokeColor: '#333', ...options };
 
-  const getScrolls = () => {
-    return { top: parent.scrollTop || 0, left: parent.scrollLeft || 0 };
-  };
-
-  const getPositions = event => ({
-    left: event.pageX - offsetLeft - left,
-    top: event.pageY - offsetTop - top
-  });
-
-  const calculatePositions = e => {
-    x1 = parseInt(getPositions(e).left + getScrolls().left);
-    y1 = parseInt(getPositions(e).top + getScrolls().top);
-
+  const determineXY = (e) => {
     if (mousedown) {
-      width = x1 - _x;
-      height = y1 - _y;
-      draw({ x: _x, y: _y, width, height });
+      const tempX = e.offsetX;
+      const tempY = e.offsetY;
+      _width = Math.abs(startX - tempX);
+      _height = Math.abs(startY - tempY);
+      draw({ x: startX, y: startY, width: _width, height: _height });
     }
   };
 
   const clear = () => {
-    ctx.clearRect(0, 0, drawArea.width, drawArea.height);
+    _ctx.clearRect(0, 0, _drawArea.width, _drawArea.height);
   };
 
-  const prepareForDraw = () => {
+  const mouseup = () => {
     mousedown = false;
-    if (typeof onchange === 'function') {
-      onchange({ x: _x, y: _y, width, height });
+    if (typeof _onchange === 'function') {
+      _onchange({ x: startX, y: startY, width: _width, height: _height });
     }
   };
 
   const events = {
-    down: e => {
-      _x = parseInt(getPositions(e).left + getScrolls().left);
-      _y = parseInt(getPositions(e).top + getScrolls().top);
+    down: (e) => {
+      startX = e.offsetX;
+      startY = e.offsetY;
       mousedown = true;
     },
-    up: prepareForDraw,
-    move: calculatePositions,
-    out: prepareForDraw
+    up: mouseup,
+    move: determineXY,
+    out: mouseup,
   };
 
   const draw = ({ x, y, width, height }) => {
-    if (!isActive) {
+    if (!_isActive) {
       return;
     }
     if (_options.multiple === false) {
       clear();
     }
-    ctx.beginPath();
-
-    ctx.rect(Math.abs(x), Math.abs(y), width, height);
-    ctx.strokeStyle = _options.strokeColor;
-    ctx.fillStyle = _options.fillColor;
-    ctx.fillRect(Math.abs(x), Math.abs(y), width, height);
-    ctx.lineWidth = _options.strokeWidth;
-    ctx.stroke();
+    _ctx.beginPath();
+    _ctx.rect(x, y, width, height);
+    _ctx.strokeStyle = _options.strokeColor;
+    _ctx.fillStyle = _options.fillColor;
+    _ctx.fillRect(x, y, width, height);
+    _ctx.lineWidth = _options.strokeWidth;
+    _ctx.stroke();
   };
 
-  const justify = () => {
-    if (!drawArea) {
-      throw Error('Redaction is not activated!');
+  const syncWithCanvas = () => {
+    if (!_drawArea) {
+      throw Error('Drawarea is not initialized yet!');
     }
-    drawArea.width = canvas.width;
-    drawArea.height = canvas.height;
-    offsetLeft = drawArea.offsetLeft;
-    offsetTop = drawArea.offsetTop;
-    drawArea.style.top = `${canvas.offsetTop}px`;
-    drawArea.style.left = `${canvas.offsetLeft}px`;
-    ctx = drawArea.getContext('2d');
-
-    const boundingClientRect = drawArea.getBoundingClientRect();
-    left = boundingClientRect.left + getScrolls().left;
-    top = boundingClientRect.top + getScrolls().top;
+    _drawArea.width = canvas.width;
+    _drawArea.height = canvas.height;
+    _drawArea.style.top = `${canvas.offsetTop}px`;
+    _drawArea.style.left = `${canvas.offsetLeft}px`;
   };
 
   const init = () => {
     if (document.querySelector('.drawarea')) {
       document.querySelector('.drawarea').remove();
     }
-    isActive = true;
+    _isActive = true;
 
-    drawArea = document.createElement('canvas');
+    _drawArea = document.createElement('canvas');
+    // static properties
+    _drawArea.style.position = 'absolute';
+    _drawArea.style.cursor = 'crosshair';
+    _drawArea.style.zIndex = 99;
+    _drawArea.classList.add('drawarea');
+    _ctx = _drawArea.getContext('2d');
+    canvas.parentNode.insertBefore(_drawArea, canvas.nextElementSibling);
+    _parent = canvas.parentElement;
 
-    drawArea.style.position = 'absolute';
-    drawArea.style.cursor = 'crosshair';
-    drawArea.style.zIndex = 99;
-    drawArea.classList.add('drawarea');
-    ctx = drawArea.getContext('2d');
-    canvas.parentNode.insertBefore(drawArea, canvas.nextElementSibling);
+    syncWithCanvas();
 
-    parent = canvas.parentElement;
-
-    justify();
-
-    ['up', 'down', 'move', 'out'].forEach(event => drawArea.addEventListener(`mouse${event}`, events[event]));
+    // register listeners
+    EVENTS.forEach((event) => _drawArea.addEventListener(`mouse${event}`, events[event]));
   };
 
   const getCanvasSize = () => ({ canvasWidth: canvas.width, canvasHeight: canvas.height });
 
   const destroy = () => {
-    if (!isActive) return;
-    isActive = false;
-    ['up', 'down', 'move'].forEach(event => drawArea.removeEventListener(`mouse${event}`, events[event]));
-    drawArea.remove();
+    if (!_isActive) return;
+    _isActive = false;
+    EVENTS.forEach((event) => _drawArea.removeEventListener(`mouse${event}`, events[event]));
+    _drawArea.remove();
   };
 
   return {
-    subscribe: cb => {
+    subscribe: (cb) => {
       if (typeof cb !== 'function') {
         throw TypeError(`parameter of subscribe must be a function!`);
       }
-      onchange = cb;
+      _onchange = cb;
     },
     clear,
     init,
     destroy,
-    draw: draw,
-    justify,
+    draw,
     getCanvasSize,
     get isActive() {
-      return isActive;
-    }
+      return _isActive;
+    },
   };
 }
